@@ -14,10 +14,37 @@ ct U[25] initial_pal = U[25](
 
     $01)
 
-// Game loop:
+
+data /rlz //compressed
+    [] nt
+        file(rlz, "nametable.nam")
+
+nmi tick()
+    {PPUSCROLL}(0)
+    {PPUSCROLL}(0)
+    {PPUMASK}(PPUMASK_BG_ON)
+    ppu_upload_oam_poll_pads(0)
+
 mode main()
+: nmi tick //set NMI func to this
+    {PPUCTRL}(0)
+    {PPUMASK}(0)
+
     palette = initial_pal
     ppu_upload_palette()
 
+    {PPUSTATUS}()
+    {PPUADDR}($20)
+    {PPUADDR}($00)
+    ppu_upload_rlz(@nt)
+
+    {PPUCTRL}(PPUCTRL_NMI_ON)
+
     while true
+        update_pads() //should do input stuff at start of frame, not end, for... reasons
+        if pads[0].pressed & BUTTON_UP
+            break
         nmi
+
+chrrom
+    file(fmt, "tileset.png")
