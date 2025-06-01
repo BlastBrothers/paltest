@@ -1,20 +1,23 @@
-// This small program plays a sound effect.
+// palette tester program
+// by Blast_Brothers 2025
 
-// Variables:
-vars /sound
-    UU pitch = 1000
+ct U[25] initial_pal = U[25](
+    $12, $23, $34,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
 
-// Sends 'pitch' variable to the APU, emitting sound:
-fn play_sound()
-    {$4015}(%100)
-    {$4008}($FF)
-    {$400A}(pitch.a)
-    {$400B}(pitch.b & %111)
+    $000, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+
+    $01)
 
 // Game loop:
 mode main()
-    {PPUCTRL}(%10000000)
+    palette = initial_pal
+    ppu_upload_palette()
+
     while true
-        pitch *= 1.01
-        play_sound()
         nmi
