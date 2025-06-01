@@ -5,21 +5,43 @@ data /rlz //compressed
     [] nt
         file(rlz, "nametable.nam")
 
+//Addresses in nametable memory where we draw the palette index numbers
+ct UU UBC_NT_ADDR = $21E7
+ct UU BG1_NT_ADDR = $2059
+ct UU BG2_NT_ADDR = $2199
+ct UU BG3_NT_ADDR = $22D9
+
 //update numbers that show palette indices
 fn update_nt()
+    {PPUMASK}(0) //have to turn off PPU to write data!
+
+
+    ppu_set_addr(UBC_NT_ADDR)
+    {PPUDATA}(palette[PALETTE_UBC] >> 4) //Write 1st digit with top 4 bits of palette color
+    //PPU address autoincrements, so no need to set that again
+    {PPUDATA}(palette[PALETTE_UBC] & %00001111)  //Write 2nd digit with bottom 4 bits of color
+
+    ppu_set_addr(BG1_NT_ADDR)
+    {PPUDATA}(palette[PALETTE_BG] >> 4)
+    {PPUDATA}(palette[PALETTE_BG] & %00001111)
+
+    ppu_set_addr(BG2_NT_ADDR)
+    {PPUDATA}(palette[PALETTE_BG+1] >> 4)
+    {PPUDATA}(palette[PALETTE_BG+1] & %00001111)
+
+    ppu_set_addr(BG3_NT_ADDR)
+    {PPUDATA}(palette[PALETTE_BG+2] >> 4)
+    {PPUDATA}(palette[PALETTE_BG+2] & %00001111)
+
+    {PPUMASK}(PPUMASK_BG_ON)
+    
     return
 
 nmi tick()
-    poll_pads()
-    update_pads()
-    if pads[0].pressed & BUTTON_UP
-        palette[24] += 1
+    
         ppu_upload_palette()
-
         update_nt()
-
-        {PPUADDR}($20) //reset scroll (?)
-        {PPUADDR}($00)
+        ppu_set_addr($2000) //reset scroll (?)
 
 
 mode main()
@@ -31,8 +53,7 @@ mode main()
     palette[PALETTE_BG+2] = $34
     palette[PALETTE_UBC] = $01
     ppu_upload_palette()
-    {PPUADDR}($20) //reset scroll (?)
-    {PPUADDR}($00)
+    ppu_set_addr($2000) //reset scroll (?)
 
     ppu_upload_rlz(@nt)
 
@@ -41,6 +62,17 @@ mode main()
     {PPUCTRL}(PPUCTRL_NMI_ON)
 
     while true
+        //If it can be done before NMI, do so. NMI time is scarce and important
+        poll_pads()
+        update_pads()
+        if pads[0].pressed & BUTTON_LEFT
+            palette[PALETTE_UBC] += 1
+        else if pads[0].pressed & BUTTON_RIGHT
+            palette[PALETTE_BG] += 1
+        else if pads[0].pressed & BUTTON_UP
+            palette[PALETTE_BG+1] += 1
+        else if pads[0].pressed & BUTTON_DOWN
+            palette[PALETTE_BG+2] += 1
         nmi
 
 chrrom
