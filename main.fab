@@ -1,20 +1,28 @@
 // palette tester program
 // by Blast_Brothers 2025
 
+// D-pad controls BG color. 
+// Holding down A, B, or Start will allow control of the 3 other colors of palette line 0.
+// Holding down Select will allow control of the emphasis bits.
+
+
 data /rlz //compressed
     [] nt
         file(rlz, "nametable.nam")
 
 //Addresses in nametable memory where we draw the palette index numbers
-ct UU UBC_NT_ADDR = $21E7
+ct UU UBC_NT_ADDR = $21E9
 ct UU BG1_NT_ADDR = $2059
 ct UU BG2_NT_ADDR = $2199
 ct UU BG3_NT_ADDR = $22D9
 
+vars /misc
+    //local tracking of PPU emphasis
+    U emphasis = %00000000
+
 //update numbers that show palette indices
 fn update_nt()
-    {PPUMASK}(0) //have to turn off PPU to write data!
-
+    {PPUMASK}(0) //have to turn off PPU output to write data!
 
     ppu_set_addr(UBC_NT_ADDR)
     {PPUDATA}(palette[PALETTE_UBC] >> 4) //Write 1st digit with top 4 bits of palette color
@@ -33,19 +41,59 @@ fn update_nt()
     {PPUDATA}(palette[PALETTE_BG+2] >> 4)
     {PPUDATA}(palette[PALETTE_BG+2] & %00001111)
 
-    {PPUMASK}(PPUMASK_BG_ON)
+    {PPUMASK}(PPUMASK_BG_ON | emphasis) //Have to turn PPU on to see stuff!
+
+fn inc_hue(U index)
+    if palette[index] & %00001111 == $0F
+        palette[index] -= $10
+    palette[index] += $1
+
+fn dec_hue(U index)
+    if palette[index] & %00001111 == $00
+            palette[index] += $10
+    palette[index] -= $1
+
+fn inc_bright(U index)
+    if palette[index] >= $30
+        return
+    palette[index] += $10
+
+fn dec_bright(U index)
+    if palette[index] <= $0F
+        return
+    palette[index] -= $10
+
+fn update_pal_entry(U index)
+    if pads[0].pressed & BUTTON_LEFT
+        dec_hue(index)
+    else if pads[0].pressed & BUTTON_RIGHT
+        inc_hue(index)
+    else if pads[0].pressed & BUTTON_UP
+        inc_bright(index)
+    else if pads[0].pressed & BUTTON_DOWN
+        dec_bright(index)
+
+fn update_emphasis()
+    if pads[0].pressed & BUTTON_LEFT
+        emphasis ^= PPUMASK_EMPHASIZE_R
+    else if pads[0].pressed & BUTTON_DOWN
+        emphasis ^= PPUMASK_EMPHASIZE_G
+    else if pads[0].pressed & BUTTON_RIGHT
+        emphasis ^= PPUMASK_EMPHASIZE_B
+    else if pads[0].pressed & BUTTON_UP
+        emphasis ^= PPUMASK_GRAYSCALE
     
-    return
+
 
 nmi tick()
-    
-        ppu_upload_palette()
-        update_nt()
-        ppu_set_addr($2000) //reset scroll (?)
+    ppu_upload_palette()
+    update_nt()
+    ppu_set_addr($2000) //this is where our nametable is, so PPU will render from there
+    poll_pads()
 
 
 mode main()
-: nmi tick //set NMI func to this
+: nmi tick //This will be our NMI function
 
     //initial pal setup
     palette[PALETTE_BG] = $12
@@ -53,26 +101,28 @@ mode main()
     palette[PALETTE_BG+2] = $34
     palette[PALETTE_UBC] = $01
     ppu_upload_palette()
-    ppu_set_addr($2000) //reset scroll (?)
 
+    ppu_set_addr($2000) //This is where we want the nametable to be
     ppu_upload_rlz(@nt)
 
 
-    {PPUMASK}(PPUMASK_BG_ON)
-    {PPUCTRL}(PPUCTRL_NMI_ON)
+    {PPUMASK}(PPUMASK_BG_ON | emphasis)
+    {PPUCTRL}(PPUCTRL_NMI_ON) //call our NMI func every frame, during blanking
 
     while true
-        //If it can be done before NMI, do so. NMI time is scarce and important
-        poll_pads()
+        //If it can be done before NMI, do so.
         update_pads()
-        if pads[0].pressed & BUTTON_LEFT
-            palette[PALETTE_UBC] += 1
-        else if pads[0].pressed & BUTTON_RIGHT
-            palette[PALETTE_BG] += 1
-        else if pads[0].pressed & BUTTON_UP
-            palette[PALETTE_BG+1] += 1
-        else if pads[0].pressed & BUTTON_DOWN
-            palette[PALETTE_BG+2] += 1
+
+        if pads[0].held & BUTTON_A
+            update_pal_entry(PALETTE_BG)
+        else if pads[0].held & BUTTON_B
+            update_pal_entry(PALETTE_BG+1)
+        else if pads[0].held & BUTTON_START
+            update_pal_entry(PALETTE_BG+2)
+        else if pads[0].held & BUTTON_SELECT
+            update_emphasis()
+        else
+            update_pal_entry(PALETTE_UBC)
         nmi
 
 chrrom
