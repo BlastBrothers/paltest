@@ -11,10 +11,11 @@ data /rlz //compressed
         file(rlz, "nametable.nam")
 
 //Addresses in nametable memory where we draw the palette index numbers
-ct UU UBC_NT_ADDR = $21E9
-ct UU BG1_NT_ADDR = $2059
-ct UU BG2_NT_ADDR = $2199
-ct UU BG3_NT_ADDR = $22D9
+ct UU UBC_NT_ADDR = $2189
+ct UU EMPH_NT_ADDR = $21A9
+ct UU BG1_NT_ADDR = $2096
+ct UU BG2_NT_ADDR = $21D6
+ct UU BG3_NT_ADDR = $2316
 
 vars /misc
     //local tracking of PPU emphasis
@@ -40,6 +41,10 @@ fn update_nt()
     ppu_set_addr(BG3_NT_ADDR)
     {PPUDATA}(palette[PALETTE_BG+2] >> 4)
     {PPUDATA}(palette[PALETTE_BG+2] & %00001111)
+
+    ppu_set_addr(EMPH_NT_ADDR)
+    {PPUDATA}(emphasis >> 4)
+    {PPUDATA}(emphasis & %00001111)
 
     {PPUMASK}(PPUMASK_BG_ON | emphasis) //Have to turn PPU on to see stuff!
 
@@ -99,6 +104,9 @@ mode main()
     palette[PALETTE_BG] = $12
     palette[PALETTE_BG+1] = $23
     palette[PALETTE_BG+2] = $34
+    palette[PALETTE_BG+6] = $0F
+    palette[PALETTE_BG+7] = $00
+    palette[PALETTE_BG+8] = $20
     palette[PALETTE_UBC] = $01
     ppu_upload_palette()
 
