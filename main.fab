@@ -88,7 +88,12 @@ fn update_emphasis()
     else if pads[0].pressed & BUTTON_UP
         emphasis ^= PPUMASK_GRAYSCALE
     
-
+fn rotate_pal()
+    U tmp = palette[PALETTE_UBC]
+    palette[PALETTE_UBC] = palette[PALETTE_BG]
+    palette[PALETTE_BG] = palette[PALETTE_BG+1]
+    palette[PALETTE_BG+1] = palette[PALETTE_BG+2]
+    palette[PALETTE_BG+2] = tmp
 
 nmi tick()
     ppu_upload_palette()
@@ -121,7 +126,10 @@ mode main()
         //If it can be done before NMI, do so.
         update_pads()
 
-        if pads[0].held & BUTTON_A
+        if pads[0].held & BUTTON_SELECT
+            if pads[0].pressed & BUTTON_START
+                rotate_pal()
+        else if pads[0].held & BUTTON_A
             update_pal_entry(PALETTE_BG)
         else if pads[0].held & BUTTON_B
             update_pal_entry(PALETTE_BG+1)
