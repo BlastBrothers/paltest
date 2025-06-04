@@ -11,8 +11,8 @@ data /rlz //compressed
         file(rlz, "nametable.nam")
 
 //Addresses in nametable memory where we draw the palette index numbers
-ct UU UBC_NT_ADDR = $2189
-ct UU EMPH_NT_ADDR = $21A9
+ct UU UBC_NT_ADDR = $218B
+ct UU EMPH_NT_ADDR = $21AB
 ct UU BG1_NT_ADDR = $2096
 ct UU BG2_NT_ADDR = $21D6
 ct UU BG3_NT_ADDR = $2316
@@ -46,7 +46,7 @@ fn update_nt()
     {PPUDATA}(emphasis >> 4)
     {PPUDATA}(emphasis & %00001111)
 
-    {PPUMASK}(PPUMASK_BG_ON | emphasis) //Have to turn PPU on to see stuff!
+    {PPUMASK}(PPUMASK_BG_ON | emphasis | PPUMASK_NO_BG_CLIP) //Have to turn PPU on to see stuff!
 
 fn inc_hue(U index)
     if palette[index] & %00001111 == $0F
@@ -114,7 +114,7 @@ mode main()
     ppu_upload_rlz(@nt)
 
 
-    {PPUMASK}(PPUMASK_BG_ON | emphasis)
+    {PPUMASK}(PPUMASK_BG_ON | emphasis | PPUMASK_NO_BG_CLIP)
     {PPUCTRL}(PPUCTRL_NMI_ON) //call our NMI func every frame, during blanking
 
     while true
