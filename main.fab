@@ -126,8 +126,8 @@ mode main()
         //If it can be done before NMI, do so.
         update_pads()
 
-        if pads[0].held & BUTTON_SELECT
-            if pads[0].pressed & BUTTON_START
+        if pads[0].pressed & BUTTON_START
+            if pads[0].held & BUTTON_SELECT
                 rotate_pal()
         else if pads[0].held & BUTTON_A
             update_pal_entry(PALETTE_BG)
